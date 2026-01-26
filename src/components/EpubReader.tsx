@@ -13,6 +13,7 @@ import {
 import { epubDB } from '../lib/db'
 import { useNavigate } from '@tanstack/react-router'
 import { useTheme } from '../lib/theme'
+import { getThemeClasses } from '../lib/themeClasses'
 
 interface EpubReaderProps {
   bookId: string
@@ -22,7 +23,8 @@ interface EpubReaderProps {
 export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
   const navigate = useNavigate()
   const bookRef = useRef<Book | null>(null)
-  const intervalRef = useRef<number | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const lastUpdateRef = useRef<number>(0)
   const { theme } = useTheme()
 
   const [words, setWords] = useState<string[]>([])
@@ -35,51 +37,10 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(0)
 
-  const getThemeClasses = () => {
-    switch (theme) {
-      case 'high-contrast':
-        return {
-          bg: 'bg-black',
-          bgSecondary: 'bg-[#1a1a1a]',
-          bgTertiary: 'bg-[#2d2d2d]',
-          text: 'text-white',
-          textSecondary: 'text-[#e0e0e0]',
-          textMuted: 'text-[#a0a0a0]',
-          border: 'border-[#404040]',
-          accent: 'bg-[#00d9ff] hover:bg-[#00b8d4]',
-          accentText: 'text-[#00d9ff]',
-        }
-      case 'oled':
-        return {
-          bg: 'bg-black',
-          bgSecondary: 'bg-black',
-          bgTertiary: 'bg-[#0a0a0a]',
-          text: 'text-white',
-          textSecondary: 'text-[#cccccc]',
-          textMuted: 'text-[#888888]',
-          border: 'border-[#1a1a1a]',
-          accent: 'bg-cyan-500 hover:bg-cyan-600',
-          accentText: 'text-cyan-400',
-        }
-      default: // base
-        return {
-          bg: 'bg-slate-900',
-          bgSecondary: 'bg-slate-800',
-          bgTertiary: 'bg-slate-700',
-          text: 'text-white',
-          textSecondary: 'text-gray-300',
-          textMuted: 'text-gray-400',
-          border: 'border-slate-700',
-          accent: 'bg-cyan-500 hover:bg-cyan-600',
-          accentText: 'text-cyan-400',
-        }
-    }
-  }
-
-  const tc = getThemeClasses()
+  const tc = getThemeClasses(theme)
 
   // Calculate the Optimal Recognition Point (ORP) for a word
-  const getORP = (word: string) => {
+  const getORP = (word: string): number => {
     const length = word.length
     if (length <= 1) return 0
     if (length <= 5) return 1
@@ -89,7 +50,7 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
   }
 
   // Calculate responsive font size based on word length and viewport
-  const calculateFontSize = (word: string) => {
+  const calculateFontSize = (word: string): number => {
     if (!viewportWidth) return 96 // Default fallback
 
     const wordLength = word.length
@@ -208,8 +169,11 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     initBook()
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+      if (bookRef.current) {
+        bookRef.current.destroy()
       }
     }
   }, [bookId, fileBuffer])
@@ -227,11 +191,30 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     }
   }, [currentIndex, words.length, bookId])
 
-  // Playback control
+  // Playback control using requestAnimationFrame
   useEffect(() => {
-    if (isPlaying && currentIndex < words.length - 1) {
-      const msPerWord = 60000 / wpm
-      intervalRef.current = window.setInterval(() => {
+    if (!isPlaying) {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      return
+    }
+
+    if (currentIndex >= words.length - 1) {
+      setIsPlaying(false)
+      return
+    }
+
+    const msPerWord = 60000 / wpm
+    lastUpdateRef.current = performance.now()
+
+    const animate = (timestamp: number) => {
+      if (!isPlaying) return
+
+      const elapsed = timestamp - lastUpdateRef.current
+
+      if (elapsed >= msPerWord) {
         setCurrentIndex((prev) => {
           if (prev >= words.length - 1) {
             setIsPlaying(false)
@@ -239,15 +222,18 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
           }
           return prev + 1
         })
-      }, msPerWord)
-    } else if (!isPlaying && intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
+        lastUpdateRef.current = timestamp
+      }
+
+      rafRef.current = requestAnimationFrame(animate)
     }
 
+    rafRef.current = requestAnimationFrame(animate)
+
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
       }
     }
   }, [isPlaying, wpm, currentIndex, words.length])
@@ -297,21 +283,21 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return () => window.removeEventListener('resize', updateViewportWidth)
   }, [])
 
-  const togglePlayPause = () => {
+  const togglePlayPause = (): void => {
     setIsPlaying(!isPlaying)
   }
 
-  const skipBack = () => {
+  const skipBack = (): void => {
     setCurrentIndex((prev) => Math.max(0, prev - 10))
     setIsPlaying(false)
   }
 
-  const skipForward = () => {
+  const skipForward = (): void => {
     setCurrentIndex((prev) => Math.min(words.length - 1, prev + 10))
     setIsPlaying(false)
   }
 
-  const toggleFullscreen = async () => {
+  const toggleFullscreen = async (): Promise<void> => {
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen()
@@ -323,7 +309,7 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     }
   }
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
@@ -366,7 +352,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
 
   return (
     <div className={`flex flex-col h-screen ${tc.bg}`}>
-      {/* Header */}
       <div className={`${tc.bgSecondary} border-b ${tc.border} px-4 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
           <button
@@ -407,7 +392,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         </div>
       </div>
 
-      {/* Settings Panel */}
       {showSettings && (
         <div className={`${tc.bgSecondary} border-b ${tc.border} px-4 py-4`}>
           <div className="max-w-md mx-auto">
@@ -433,7 +417,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         </div>
       )}
 
-      {/* Progress Bar */}
       <div
         className={`h-2 ${tc.bgSecondary} cursor-pointer relative group`}
         onClick={handleProgressClick}
@@ -445,12 +428,9 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         <div className="absolute inset-0 bg-cyan-400/0 group-hover:bg-cyan-400/10 transition-colors" />
       </div>
 
-      {/* Spritz Display */}
       <div className={`flex-1 flex items-center justify-center ${tc.bg}`}>
         <div className="text-center px-8 w-full max-w-2xl">
-          {/* Word Display with ORP */}
           <div className="relative mb-8">
-            {/* Focal guide line */}
             <div
               className="absolute left-1/2 top-1/2 w-px bg-red-500/30 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
               style={{ height: `${fontSize * 1.2}px` }}
@@ -479,7 +459,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
             </div>
           </div>
 
-          {/* Context Words (preview) */}
           <div
             className={`${tc.textMuted} mb-8`}
             style={{
@@ -492,7 +471,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         </div>
       </div>
 
-      {/* Controls */}
       <div className={`${tc.bgSecondary} border-t ${tc.border} px-4 py-6`}>
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-center gap-4">

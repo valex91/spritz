@@ -4,6 +4,8 @@ import { epubDB, type Book } from '../lib/db'
 import ePub from 'epubjs'
 import { useNavigate } from '@tanstack/react-router'
 import { useTheme, themes, type Theme } from '../lib/theme'
+import { getThemeClasses } from '../lib/themeClasses'
+import { formatRelativeDate } from '../lib/utils'
 
 export function Library() {
   const [books, setBooks] = useState<Book[]>([])
@@ -45,10 +47,12 @@ export function Library() {
       }
     })
 
-    // Revoke old URLs
-    coverUrls.forEach((url) => URL.revokeObjectURL(url))
+    // Store old URLs for cleanup after state update
+    const oldUrls = Array.from(coverUrls.values())
     setCoverUrls(newCoverUrls)
     setBooks(allBooks)
+    // Revoke old URLs after state update
+    oldUrls.forEach((url) => URL.revokeObjectURL(url))
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,79 +106,22 @@ export function Library() {
     }
   }
 
-  const handleDeleteBook = async (bookId: string) => {
+  const handleDeleteBook = async (bookId: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this book?')) return
 
     await epubDB.deleteBook(bookId)
     await loadBooks()
   }
 
-  const handleOpenBook = (bookId: string) => {
+  const handleOpenBook = (bookId: string): void => {
     navigate({ to: '/read/$bookId', params: { bookId } })
   }
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp)
-    const now = Date.now()
-    const diff = now - timestamp
-
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(diff / 86400000)
-
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    if (days < 7) return `${days}d ago`
-    return date.toLocaleDateString()
-  }
-
-  const getThemeClasses = () => {
-    switch (theme) {
-      case 'high-contrast':
-        return {
-          bg: 'bg-black',
-          bgSecondary: 'bg-[#1a1a1a]',
-          bgTertiary: 'bg-[#2d2d2d]',
-          text: 'text-white',
-          textSecondary: 'text-[#e0e0e0]',
-          textMuted: 'text-[#a0a0a0]',
-          border: 'border-[#404040]',
-          accent: 'bg-[#00d9ff] hover:bg-[#00b8d4]',
-          accentText: 'text-[#00d9ff]',
-        }
-      case 'oled':
-        return {
-          bg: 'bg-black',
-          bgSecondary: 'bg-black',
-          bgTertiary: 'bg-[#0a0a0a]',
-          text: 'text-white',
-          textSecondary: 'text-[#cccccc]',
-          textMuted: 'text-[#888888]',
-          border: 'border-[#1a1a1a]',
-          accent: 'bg-cyan-500 hover:bg-cyan-600',
-          accentText: 'text-cyan-400',
-        }
-      default: // base
-        return {
-          bg: 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900',
-          bgSecondary: 'bg-slate-800/50',
-          bgTertiary: 'bg-slate-800',
-          text: 'text-white',
-          textSecondary: 'text-gray-300',
-          textMuted: 'text-gray-400',
-          border: 'border-slate-700',
-          accent: 'bg-cyan-500 hover:bg-cyan-600',
-          accentText: 'text-cyan-400',
-        }
-    }
-  }
-
-  const tc = getThemeClasses()
+  const tc = getThemeClasses(theme)
 
   return (
     <div className={`min-h-screen ${tc.bg}`}>
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className={`text-4xl font-bold ${tc.text} mb-2`}>My Library</h1>
@@ -192,7 +139,6 @@ export function Library() {
           </button>
         </div>
 
-        {/* Theme Settings Panel */}
         {showThemeSettings && (
           <div className={`mb-8 ${tc.bgSecondary} rounded-xl p-6 ${tc.border} border`}>
             <h2 className={`text-xl font-semibold ${tc.text} mb-4`}>Theme Settings</h2>
@@ -219,7 +165,6 @@ export function Library() {
           </div>
         )}
 
-        {/* Upload Section */}
         <div className="mb-8">
           <label className="block">
             <input
@@ -251,7 +196,6 @@ export function Library() {
           </label>
         </div>
 
-        {/* Books Grid */}
         {books.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className={`w-16 h-16 ${tc.textMuted} opacity-30 mx-auto mb-4`} />
@@ -263,9 +207,8 @@ export function Library() {
             {books.map((book) => (
               <div
                 key={book.id}
-                className={`group relative ${tc.bgSecondary} rounded-lg overflow-hidden border ${tc.border} hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10`}
+                className={`group relative ${tc.bgSecondary} rounded-lg overflow-hidden border ${tc.border} hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 flex flex-col justify-between`}
               >
-                {/* Book Cover */}
                 <div
                   className={`aspect-[2/3] ${tc.bgTertiary} cursor-pointer`}
                   onClick={() => handleOpenBook(book.id)}
@@ -282,8 +225,6 @@ export function Library() {
                     </div>
                   )}
                 </div>
-
-                {/* Book Info */}
                 <div className="p-3">
                   <h3
                     className={`font-medium ${tc.text} text-sm line-clamp-2 mb-1 cursor-pointer hover:${tc.accentText}`}
@@ -298,13 +239,13 @@ export function Library() {
                   {book.lastRead && (
                     <div className={`flex items-center gap-1 text-xs ${tc.textMuted} mb-2`}>
                       <Clock className="w-3 h-3" />
-                      <span>{formatDate(book.lastRead)}</span>
+                      <span>{formatRelativeDate(book.lastRead)}</span>
                     </div>
                   )}
 
-                  {/* Delete Button */}
                   <button
                     onClick={() => handleDeleteBook(book.id)}
+                    type='button'
                     className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-xs transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />

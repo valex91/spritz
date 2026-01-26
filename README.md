@@ -143,14 +143,28 @@ This ensures:
 
 #### Playback Control
 
-Words are displayed using a `setInterval` timer:
+Words are displayed using `requestAnimationFrame` for smooth, frame-aligned timing:
 
 ```typescript
 const msPerWord = 60000 / wpm  // Convert WPM to milliseconds per word
-setInterval(() => {
-  setCurrentIndex(prev => prev + 1)
-}, msPerWord)
+
+const animate = (timestamp: number) => {
+  const elapsed = timestamp - lastUpdate
+
+  if (elapsed >= msPerWord) {
+    setCurrentIndex(prev => prev + 1)
+    lastUpdate = timestamp
+  }
+
+  requestAnimationFrame(animate)
+}
 ```
+
+This provides:
+- Frame-aligned updates (60 FPS)
+- Better battery efficiency (auto-pauses when tab inactive)
+- More accurate timing than `setInterval`
+- Smoother visual transitions
 
 #### Bookmark Persistence
 

@@ -14,6 +14,11 @@ const config = defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    host: '0.0.0.0', // Listen on all network interfaces
+    port: 3000,
+    strictPort: false, // Allow port fallback if 3000 is taken
+  },
   plugins: [
     devtools(),
     nitro(),
