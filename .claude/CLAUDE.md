@@ -21,6 +21,10 @@ A browser-based EPUB reader implementing the Spritz speed reading technique. Boo
 
 ## Technology Stack & Rationale
 
+### Runtime is Bun
+**Why**: Because is fast modern and allow me to do not die of config fatigue
+**When to suggest changes**: Never, but use Bun native API when possibile 
+
 ### Framework: TanStack Start
 **Why**: Modern full-stack React framework with TypeScript support
 **When to suggest changes**: Only if there's a compelling reason (unlikely)

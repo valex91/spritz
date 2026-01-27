@@ -207,10 +207,10 @@ export function Library() {
             {books.map((book) => (
               <div
                 key={book.id}
-                className={`group relative ${tc.bgSecondary} rounded-lg overflow-hidden border ${tc.border} hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 flex flex-col justify-between`}
+                className={`group relative ${tc.bgSecondary} rounded-lg overflow-hidden border ${tc.border} hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 flex flex-col h-[400px] sm:h-[420px] md:h-[480px]`}
               >
                 <div
-                  className={`aspect-[2/3] ${tc.bgTertiary} cursor-pointer`}
+                  className={`flex-[2] ${tc.bgTertiary} cursor-pointer overflow-hidden`}
                   onClick={() => handleOpenBook(book.id)}
                 >
                   {coverUrls.get(book.id) ? (
@@ -225,7 +225,7 @@ export function Library() {
                     </div>
                   )}
                 </div>
-                <div className="p-3">
+                <div className="flex-[1] p-3 flex flex-col justify-between overflow-hidden">
                   <h3
                     className={`font-medium ${tc.text} text-sm line-clamp-2 mb-1 cursor-pointer hover:${tc.accentText}`}
                     onClick={() => handleOpenBook(book.id)}

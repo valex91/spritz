@@ -3,13 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "dev": "bun --bun vite dev", 
+    "build": "bun --bun vite build", 
+    "serve": "bun --bun vite preview",
+    "preview": "bun --bun vite preview",
+    "test": "bun --bun vitest run",
+    "format": "bun --bun biome format",
+    "lint": "bun --bun biome lint",
+    "check": "bun --bun biome check"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.6",
