@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Book page background -->
+  <rect x="80" y="60" width="352" height="420" rx="8" fill="#f5f0e6" stroke="#d4c9b5" stroke-width="8"/>
+  <!-- Page fold corner -->
+  <path d="M380 60 L432 60 L432 112 Z" fill="#e8e0d0"/>
+  <path d="M380 60 L380 112 L432 112" fill="none" stroke="#d4c9b5" stroke-width="6"/>
+
+  <!-- Martini glass stem -->
+  <rect x="244" y="300" width="24" height="120" fill="#2a2a2a"/>
+  <!-- Martini glass base -->
+  <ellipse cx="256" cy="420" rx="60" ry="16" fill="#2a2a2a"/>
+
+  <!-- Martini glass bowl -->
+  <path d="M140 140 L256 300 L372 140 Z" fill="#3a3a3a"/>
+
+  <!-- Orange spritz liquid -->
+  <path d="M164 168 L256 276 L348 168 Z" fill="#ff8c42"/>
+
+  <!-- Liquid highlight -->
+  <path d="M180 168 L220 220 L260 168 Z" fill="#ffa366" opacity="0.6"/>
+</svg>
