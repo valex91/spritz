@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Upload, Trash2, BookOpen, Clock, Palette } from 'lucide-react'
+import { Upload, Trash2, BookOpen, Clock, Palette, Heart } from 'lucide-react'
 import { epubDB, type Book } from '../lib/db'
 import ePub from 'epubjs'
 import { useNavigate } from '@tanstack/react-router'
@@ -122,13 +122,24 @@ export function Library() {
             </p>
           </div>
 
-          <button
-            onClick={() => setShowThemeSettings(!showThemeSettings)}
-            className={`p-3 ${tc.bgTertiary} hover:opacity-80 rounded-lg transition-colors ${tc.border} border`}
-            aria-label="Theme settings"
-          >
-            <Palette className={`w-6 h-6 ${tc.textMuted}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://paypal.me/vlosito91"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`p-3 ${tc.bgTertiary} hover:opacity-80 rounded-lg transition-colors ${tc.border} border`}
+              aria-label="Support this project"
+            >
+              <Heart className="w-6 h-6 text-pink-500" />
+            </a>
+            <button
+              onClick={() => setShowThemeSettings(!showThemeSettings)}
+              className={`p-3 ${tc.bgTertiary} hover:opacity-80 rounded-lg transition-colors ${tc.border} border`}
+              aria-label="Theme settings"
+            >
+              <Palette className={`w-6 h-6 ${tc.textMuted}`} />
+            </button>
+          </div>
         </div>
 
         {showThemeSettings && (
@@ -248,6 +259,21 @@ export function Library() {
             ))}
           </div>
         )}
+
+        <footer className={`mt-16 pt-8 border-t ${tc.border} text-center`}>
+          <p className={`text-sm ${tc.textMuted} mb-2`}>
+            Spritz is free and open source. Your books never leave your device.
+          </p>
+          <a
+            href="https://paypal.me/vlosito91"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-pink-500 hover:text-pink-400 transition-colors"
+          >
+            <Heart className="w-4 h-4" />
+            Support this project
+          </a>
+        </footer>
       </div>
     </div>
   )
