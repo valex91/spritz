@@ -19,7 +19,6 @@ export function Library() {
     loadBooks()
   }, [])
 
-  // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
       coverUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -28,7 +27,6 @@ export function Library() {
 
   const loadBooks = async () => {
     const allBooks = await epubDB.getAllBooks()
-    // Sort by last read, then by added date
     allBooks.sort((a, b) => {
       if (a.lastRead && b.lastRead) {
         return b.lastRead - a.lastRead
@@ -38,7 +36,6 @@ export function Library() {
       return b.addedAt - a.addedAt
     })
 
-    // Create object URLs for cover images
     const newCoverUrls = new Map<string, string>()
     allBooks.forEach((book) => {
       if (book.coverBlob) {
@@ -47,11 +44,9 @@ export function Library() {
       }
     })
 
-    // Store old URLs for cleanup after state update
     const oldUrls = Array.from(coverUrls.values())
     setCoverUrls(newCoverUrls)
     setBooks(allBooks)
-    // Revoke old URLs after state update
     oldUrls.forEach((url) => URL.revokeObjectURL(url))
   }
 
@@ -65,12 +60,10 @@ export function Library() {
       const arrayBuffer = await file.arrayBuffer()
       const book = ePub(arrayBuffer)
 
-      // Load metadata
       await book.ready
 
       const metadata = await book.loaded.metadata
 
-      // Get cover as blob instead of URL
       let coverBlob: Blob | undefined
       try {
         const coverUrl = await book.coverUrl()
@@ -96,7 +89,6 @@ export function Library() {
       await epubDB.addBook(bookData)
       await loadBooks()
 
-      // Clear the input
       e.target.value = ''
     } catch (error) {
       console.error('Error uploading book:', error)

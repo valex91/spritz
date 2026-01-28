@@ -13,7 +13,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('base')
   const [mounted, setMounted] = useState(false)
 
-  // Load theme from localStorage after mount
   useEffect(() => {
     setMounted(true)
     const saved = localStorage.getItem('spritz-theme') as Theme | null
@@ -28,7 +27,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Apply theme class to document
     if (mounted) {
       document.documentElement.setAttribute('data-theme', theme)
     }

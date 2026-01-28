@@ -39,7 +39,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
 
   const tc = getThemeClasses(theme)
 
-  // Calculate the Optimal Recognition Point (ORP) for a word
   const getORP = (word: string): number => {
     const length = word.length
     if (length <= 1) return 0
@@ -49,36 +48,26 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return 4
   }
 
-  // Calculate responsive font size based on word length and viewport
   const calculateFontSize = (word: string): number => {
-    if (!viewportWidth) return 96 // Default fallback
+    if (!viewportWidth) return 96
 
     const wordLength = word.length
-    const availableWidth = viewportWidth * 0.8 // Use 80% of viewport width
+    const availableWidth = viewportWidth * 0.8
+    const charWidthRatio = 0.6
 
-    // Estimate character width in pixels (monospace font approximation)
-    // This is a rough estimate - actual width depends on font
-    const charWidthRatio = 0.6 // mono chars are roughly 0.6x their font size
-
-    // Calculate max font size that fits the word
     let fontSize = availableWidth / (wordLength * charWidthRatio)
 
-    // Apply constraints based on screen size
     if (viewportWidth < 640) {
-      // Mobile: smaller range
-      fontSize = Math.min(fontSize, 64) // Max 4rem
-      fontSize = Math.max(fontSize, 32) // Min 2rem
+      fontSize = Math.min(fontSize, 64)
+      fontSize = Math.max(fontSize, 32)
     } else if (viewportWidth < 1024) {
-      // Tablet: medium range
-      fontSize = Math.min(fontSize, 96) // Max 6rem
-      fontSize = Math.max(fontSize, 48) // Min 3rem
+      fontSize = Math.min(fontSize, 96)
+      fontSize = Math.max(fontSize, 48)
     } else {
-      // Desktop: larger range
-      fontSize = Math.min(fontSize, 128) // Max 8rem
-      fontSize = Math.max(fontSize, 64) // Min 4rem
+      fontSize = Math.min(fontSize, 128)
+      fontSize = Math.max(fontSize, 64)
     }
 
-    // Additional scaling for very long words
     if (wordLength > 15) {
       fontSize *= 0.9
     }
@@ -89,7 +78,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return Math.floor(fontSize)
   }
 
-  // Extract text content from EPUB
   useEffect(() => {
     const initBook = async () => {
       try {
@@ -103,7 +91,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         const metadata = await book.loaded.metadata
         setBookTitle(metadata.title || 'Unknown Title')
 
-        // Create a temporary container to render and extract text
         const tempContainer = document.createElement('div')
         tempContainer.style.position = 'absolute'
         tempContainer.style.left = '-9999px'
@@ -118,14 +105,11 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
         const spine = await book.loaded.spine
         let allText = ''
 
-        // Extract text from all chapters by rendering them
         for (const item of spine.items) {
           try {
             await rendition.display(item.href)
-            // Wait a bit for content to render
             await new Promise(resolve => setTimeout(resolve, 100))
 
-            // Get the iframe content
             const iframe = tempContainer.querySelector('iframe')
             if (iframe?.contentDocument?.body) {
               const text = iframe.contentDocument.body.textContent || ''
@@ -136,11 +120,9 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
           }
         }
 
-        // Clean up
         rendition.destroy()
         document.body.removeChild(tempContainer)
 
-        // Split into words and filter out empty strings
         const wordArray = allText
           .split(/\s+/)
           .map((w) => w.trim())
@@ -148,10 +130,8 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
 
         setWords(wordArray)
 
-        // Load saved bookmark
         const bookmark = await epubDB.getBookmark(bookId)
         if (bookmark && bookmark.percentage > 0) {
-          // Use the percentage to calculate word index
           const savedIndex = Math.floor(
             (bookmark.percentage / 100) * wordArray.length
           )
@@ -178,20 +158,18 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     }
   }, [bookId, fileBuffer])
 
-  // Save bookmark when index changes
   useEffect(() => {
     if (words.length > 0 && currentIndex >= 0) {
       const percentage = (currentIndex / words.length) * 100
       epubDB.saveBookmark({
         bookId,
-        cfi: '', // We're not using CFI for word-by-word reading
+        cfi: '',
         percentage,
         updatedAt: Date.now(),
       })
     }
   }, [currentIndex, words.length, bookId])
 
-  // Playback control using requestAnimationFrame
   useEffect(() => {
     if (!isPlaying) {
       if (rafRef.current) {
@@ -238,7 +216,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     }
   }, [isPlaying, wpm, currentIndex, words.length])
 
-  // Keyboard controls
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -262,7 +239,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return () => document.removeEventListener('keydown', handleKeyPress)
   }, [words.length])
 
-  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
@@ -272,7 +248,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // Track viewport width for responsive font sizing
   useEffect(() => {
     const updateViewportWidth = () => {
       setViewportWidth(window.innerWidth)

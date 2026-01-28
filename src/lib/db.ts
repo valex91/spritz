@@ -26,14 +26,12 @@ class EpubDatabase {
   async init() {
     this.db = await openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        // Books store
         if (!db.objectStoreNames.contains('books')) {
           const bookStore = db.createObjectStore('books', { keyPath: 'id' })
           bookStore.createIndex('lastRead', 'lastRead')
           bookStore.createIndex('addedAt', 'addedAt')
         }
 
-        // Bookmarks store
         if (!db.objectStoreNames.contains('bookmarks')) {
           db.createObjectStore('bookmarks', { keyPath: 'bookId' })
         }
@@ -49,7 +47,6 @@ class EpubDatabase {
     return this.db!
   }
 
-  // Books operations
   async addBook(book: Book) {
     const db = await this.getDB()
     await db.put('books', book)
@@ -75,7 +72,6 @@ class EpubDatabase {
     ])
   }
 
-  // Bookmark operations
   async saveBookmark(bookmark: Bookmark) {
     const db = await this.getDB()
     await db.put('bookmarks', bookmark)
