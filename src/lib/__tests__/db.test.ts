@@ -7,21 +7,21 @@ vi.mock('idb', () => ({
     const store = new Map()
 
     return Promise.resolve({
-      put: vi.fn((storeName, data) => {
+      put: vi.fn((_storeName, data) => {
         store.set(data.id || data.bookId, data)
         return Promise.resolve()
       }),
-      get: vi.fn((storeName, id) => {
+      get: vi.fn((_storeName, id) => {
         return Promise.resolve(store.get(id))
       }),
-      getAll: vi.fn((storeName) => {
+      getAll: vi.fn((_storeName) => {
         return Promise.resolve(Array.from(store.values()))
       }),
-      delete: vi.fn((storeName, id) => {
+      delete: vi.fn((_storeName, id) => {
         store.delete(id)
         return Promise.resolve()
       }),
-      transaction: vi.fn((storeNames, mode) => {
+      transaction: vi.fn((_storeNames, _mode) => {
         const txStore = {
           delete: vi.fn((id: string) => {
             store.delete(id)
@@ -43,14 +43,14 @@ describe('Book interface', () => {
       id: 'test-id',
       title: 'Test Book',
       author: 'Test Author',
-      file: new ArrayBuffer(8),
+      text: 'Sample book text content',
       addedAt: Date.now(),
     }
 
     expect(book).toHaveProperty('id')
     expect(book).toHaveProperty('title')
     expect(book).toHaveProperty('author')
-    expect(book).toHaveProperty('file')
+    expect(book).toHaveProperty('text')
     expect(book).toHaveProperty('addedAt')
   })
 
@@ -59,7 +59,7 @@ describe('Book interface', () => {
       id: 'test-id',
       title: 'Test Book',
       author: 'Test Author',
-      file: new ArrayBuffer(8),
+      text: 'Sample book text content',
       coverBlob: new Blob(['test'], { type: 'image/jpeg' }),
       addedAt: Date.now(),
       lastRead: Date.now(),
@@ -130,7 +130,7 @@ describe('epubDB', () => {
         id: 'test-book-1',
         title: 'Test Book',
         author: 'Test Author',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 
@@ -142,7 +142,7 @@ describe('epubDB', () => {
         id: 'test-book-2',
         title: 'Test Book 2',
         author: 'Test Author 2',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 
@@ -164,7 +164,7 @@ describe('epubDB', () => {
         id: 'book-1',
         title: 'Book 1',
         author: 'Author 1',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 
@@ -172,7 +172,7 @@ describe('epubDB', () => {
         id: 'book-2',
         title: 'Book 2',
         author: 'Author 2',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 
@@ -188,7 +188,7 @@ describe('epubDB', () => {
         id: 'test-book-3',
         title: 'Test Book 3',
         author: 'Test Author 3',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 
@@ -272,7 +272,7 @@ describe('epubDB', () => {
         id: 'delete-test',
         title: 'Delete Test',
         author: 'Test Author',
-        file: new ArrayBuffer(8),
+        text: 'Sample book text content',
         addedAt: Date.now(),
       }
 

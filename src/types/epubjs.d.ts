@@ -37,6 +37,15 @@ declare module 'epubjs' {
     }
   }
 
+  export interface SpineItem {
+    href: string
+    index: number
+  }
+
+  export interface Spine {
+    items: SpineItem[]
+  }
+
   export interface Book {
     ready: Promise<void>
     loaded: {
@@ -44,6 +53,7 @@ declare module 'epubjs' {
       navigation: Promise<{ toc: NavItem[] }>
       cover: Promise<string>
     }
+    spine: Spine
     renderTo(element: HTMLElement | string, options?: any): Rendition
     coverUrl(): Promise<string | null>
     destroy(): void

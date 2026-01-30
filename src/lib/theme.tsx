@@ -2,6 +2,12 @@ import { createContext, useContext, useEffect, useState } from 'react'
 
 export type Theme = 'base' | 'high-contrast' | 'oled'
 
+const themeBackgrounds: Record<Theme, string> = {
+  base: '#0f172a',
+  'high-contrast': '#000000',
+  oled: '#000000',
+}
+
 interface ThemeContextType {
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -29,6 +35,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (mounted) {
       document.documentElement.setAttribute('data-theme', theme)
+      const bgColor = themeBackgrounds[theme]
+      document.documentElement.style.backgroundColor = bgColor
+      document.body.style.backgroundColor = bgColor
     }
   }, [theme, mounted])
 

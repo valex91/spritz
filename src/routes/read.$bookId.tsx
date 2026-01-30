@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { EpubReader } from '../components/EpubReader'
-import { epubDB } from '../lib/db'
-import { ArrowLeft } from 'lucide-react'
+import { Reader } from '../components/Reader'
+import { epubDB, type Book } from '../lib/db'
 
 export const Route = createFileRoute('/read/$bookId')({
   component: ReaderPage,
@@ -11,20 +10,20 @@ export const Route = createFileRoute('/read/$bookId')({
 function ReaderPage() {
   const { bookId } = Route.useParams()
   const navigate = useNavigate()
-  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null)
+  const [book, setBook] = useState<Book | null>(null)
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
     const loadBook = async () => {
       try {
-        const book = await epubDB.getBook(bookId)
+        const loadedBook = await epubDB.getBook(bookId)
 
-        if (!book) {
+        if (!loadedBook) {
           setError('Book not found')
           return
         }
 
-        setFileBuffer(book.file)
+        setBook(loadedBook)
       } catch (err) {
         console.error('Error loading book:', err)
         setError('Failed to load book')
@@ -50,7 +49,7 @@ function ReaderPage() {
     )
   }
 
-  if (!fileBuffer) {
+  if (!book) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-gray-400">Loading book...</div>
@@ -58,5 +57,5 @@ function ReaderPage() {
     )
   }
 
-  return <EpubReader bookId={bookId} fileBuffer={fileBuffer} />
+  return <Reader bookId={bookId} title={book.title} text={book.text} />
 }

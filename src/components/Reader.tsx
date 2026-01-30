@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import ePub, { type Book } from 'epubjs'
 import {
   Play,
   Pause,
@@ -15,14 +14,14 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTheme } from '../lib/theme'
 import { getThemeClasses } from '../lib/themeClasses'
 
-interface EpubReaderProps {
+interface ReaderProps {
   bookId: string
-  fileBuffer: ArrayBuffer
+  title: string
+  text: string
 }
 
-export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
+export function Reader({ bookId, title, text }: ReaderProps) {
   const navigate = useNavigate()
-  const bookRef = useRef<Book | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastUpdateRef = useRef<number>(0)
   const { theme } = useTheme()
@@ -33,7 +32,6 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
   const [wpm, setWpm] = useState(300)
   const [isLoading, setIsLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
-  const [bookTitle, setBookTitle] = useState('')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(0)
 
@@ -52,111 +50,62 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     if (!viewportWidth) return 96
 
     const wordLength = word.length
-    const availableWidth = viewportWidth * 0.8
+    const maxContainerWidth = 672 - 64
+    const availableWidth = Math.min(viewportWidth - 64, maxContainerWidth) * 0.95
     const charWidthRatio = 0.6
 
     let fontSize = availableWidth / (wordLength * charWidthRatio)
 
     if (viewportWidth < 640) {
       fontSize = Math.min(fontSize, 64)
-      fontSize = Math.max(fontSize, 32)
+      fontSize = Math.max(fontSize, 24)
     } else if (viewportWidth < 1024) {
       fontSize = Math.min(fontSize, 96)
-      fontSize = Math.max(fontSize, 48)
+      fontSize = Math.max(fontSize, 32)
     } else {
       fontSize = Math.min(fontSize, 128)
-      fontSize = Math.max(fontSize, 64)
+      fontSize = Math.max(fontSize, 48)
     }
 
     if (wordLength > 15) {
-      fontSize *= 0.9
+      fontSize *= 0.85
     }
     if (wordLength > 20) {
-      fontSize *= 0.85
+      fontSize *= 0.8
     }
 
     return Math.floor(fontSize)
   }
 
   useEffect(() => {
-    const initBook = async () => {
-      try {
-        setIsLoading(true)
+    const initReader = async () => {
+      setIsLoading(true)
 
-        const book = ePub(fileBuffer)
-        bookRef.current = book
+      const wordArray = text
+        .split(/\s+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0)
 
-        await book.ready
+      setWords(wordArray)
 
-        const metadata = await book.loaded.metadata
-        setBookTitle(metadata.title || 'Unknown Title')
-
-        const tempContainer = document.createElement('div')
-        tempContainer.style.position = 'absolute'
-        tempContainer.style.left = '-9999px'
-        tempContainer.style.width = '1000px'
-        document.body.appendChild(tempContainer)
-
-        const rendition = book.renderTo(tempContainer, {
-          width: 1000,
-          height: 1000,
-        })
-
-        const spine = await book.loaded.spine
-        let allText = ''
-
-        for (const item of spine.items) {
-          try {
-            await rendition.display(item.href)
-            await new Promise(resolve => setTimeout(resolve, 100))
-
-            const iframe = tempContainer.querySelector('iframe')
-            if (iframe?.contentDocument?.body) {
-              const text = iframe.contentDocument.body.textContent || ''
-              allText += text + ' '
-            }
-          } catch (err) {
-            console.error('Error loading chapter:', item.href, err)
-          }
-        }
-
-        rendition.destroy()
-        document.body.removeChild(tempContainer)
-
-        const wordArray = allText
-          .split(/\s+/)
-          .map((w) => w.trim())
-          .filter((w) => w.length > 0)
-
-        setWords(wordArray)
-
-        const bookmark = await epubDB.getBookmark(bookId)
-        if (bookmark && bookmark.percentage > 0) {
-          const savedIndex = Math.floor(
-            (bookmark.percentage / 100) * wordArray.length
-          )
-          setCurrentIndex(savedIndex)
-        }
-
-        await epubDB.updateLastRead(bookId)
-        setIsLoading(false)
-      } catch (error) {
-        console.error('Error loading book:', error)
-        setIsLoading(false)
+      const bookmark = await epubDB.getBookmark(bookId)
+      if (bookmark && bookmark.percentage > 0) {
+        const savedIndex = Math.floor((bookmark.percentage / 100) * wordArray.length)
+        setCurrentIndex(savedIndex)
       }
+
+      await epubDB.updateLastRead(bookId)
+      setIsLoading(false)
     }
 
-    initBook()
+    initReader()
 
     return () => {
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current)
       }
-      if (bookRef.current) {
-        bookRef.current.destroy()
-      }
     }
-  }, [bookId, fileBuffer])
+  }, [bookId, text])
 
   useEffect(() => {
     if (words.length > 0 && currentIndex >= 0) {
@@ -297,8 +246,8 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return (
       <div className={`min-h-screen ${tc.bg} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <div className={tc.textMuted}>Loading book...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4" />
+          <div className={tc.textMuted}>Loading...</div>
         </div>
       </div>
     )
@@ -308,7 +257,7 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
     return (
       <div className={`min-h-screen ${tc.bg} flex items-center justify-center`}>
         <div className="text-center">
-          <p className="text-red-400 mb-4">Failed to load book content</p>
+          <p className="text-red-400 mb-4">No content found</p>
           <button
             onClick={() => navigate({ to: '/' })}
             className={`px-4 py-2 ${tc.accent} ${tc.text} rounded-lg transition-colors`}
@@ -337,7 +286,7 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
             <Home className={`w-5 h-5 ${tc.textMuted}`} />
           </button>
           <div>
-            <h1 className={`${tc.text} font-medium`}>{bookTitle}</h1>
+            <h1 className={`${tc.text} font-medium`}>{title}</h1>
             <p className={`text-xs ${tc.textMuted}`}>
               {currentIndex + 1} / {words.length} words
             </p>
@@ -422,11 +371,7 @@ export function EpubReader({ bookId, fileBuffer }: EpubReaderProps) {
               {currentWord.split('').map((char, idx) => (
                 <span
                   key={idx}
-                  className={
-                    idx === orpIndex
-                      ? 'text-red-500'
-                      : tc.text
-                  }
+                  className={idx === orpIndex ? 'text-red-500' : tc.text}
                 >
                   {char}
                 </span>

@@ -4,7 +4,7 @@ export interface Book {
   id: string
   title: string
   author: string
-  file: ArrayBuffer
+  text: string
   coverBlob?: Blob
   addedAt: number
   lastRead?: number

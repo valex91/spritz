@@ -21,6 +21,7 @@
     "epubjs": "^0.3.93",
     "idb": "^8.0.3",
     "lucide-react": "^0.561.0",
+    "pdfjs-dist": "4.9.155",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.0.2",

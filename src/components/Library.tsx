@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Upload, Trash2, BookOpen, Clock, Palette, Heart } from 'lucide-react'
+import { Trash2, BookOpen, Clock, Palette, Heart } from 'lucide-react'
 import { epubDB, type Book } from '../lib/db'
-import ePub from 'epubjs'
 import { useNavigate } from '@tanstack/react-router'
 import { useTheme, themes, type Theme } from '../lib/theme'
 import { getThemeClasses } from '../lib/themeClasses'
 import { formatRelativeDate } from '../lib/utils'
+import { FileUploader } from './FileUploader'
 
 export function Library() {
   const [books, setBooks] = useState<Book[]>([])
-  const [isUploading, setIsUploading] = useState(false)
   const [showThemeSettings, setShowThemeSettings] = useState(false)
+  const [showUploader, setShowUploader] = useState(true)
   const [coverUrls, setCoverUrls] = useState<Map<string, string>>(new Map())
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
+
+  const hasBooks = books.length > 0
+  const uploaderExpanded = showUploader || !hasBooks
 
   useEffect(() => {
     loadBooks()
@@ -50,54 +53,6 @@ export function Library() {
     oldUrls.forEach((url) => URL.revokeObjectURL(url))
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsUploading(true)
-
-    try {
-      const arrayBuffer = await file.arrayBuffer()
-      const book = ePub(arrayBuffer)
-
-      await book.ready
-
-      const metadata = await book.loaded.metadata
-
-      let coverBlob: Blob | undefined
-      try {
-        const coverUrl = await book.coverUrl()
-        if (coverUrl) {
-          const response = await fetch(coverUrl)
-          coverBlob = await response.blob()
-        }
-      } catch (err) {
-        console.warn('Could not load cover image:', err)
-      }
-
-      const bookId = crypto.randomUUID()
-
-      const bookData: Book = {
-        id: bookId,
-        title: metadata.title || 'Unknown Title',
-        author: metadata.creator || 'Unknown Author',
-        file: arrayBuffer,
-        coverBlob,
-        addedAt: Date.now(),
-      }
-
-      await epubDB.addBook(bookData)
-      await loadBooks()
-
-      e.target.value = ''
-    } catch (error) {
-      console.error('Error uploading book:', error)
-      alert('Failed to upload book. Make sure it is a valid EPUB file.')
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
   const handleDeleteBook = async (bookId: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this book?')) return
 
@@ -118,7 +73,7 @@ export function Library() {
           <div>
             <h1 className={`text-4xl font-bold ${tc.text} mb-2`}>My Library</h1>
             <p className={tc.textMuted}>
-              Your EPUB books are stored locally in your browser
+              Your reading materials are stored locally in your browser
             </p>
           </div>
 
@@ -168,42 +123,21 @@ export function Library() {
           </div>
         )}
 
-        <div className="mb-8">
-          <label className="block">
-            <input
-              type="file"
-              accept=".epub"
-              onChange={handleFileUpload}
-              disabled={isUploading}
-              className="hidden"
-              id="epub-upload"
-            />
-            <div className={`flex items-center justify-center w-full p-8 border-2 border-dashed ${tc.border} rounded-xl hover:border-cyan-500 transition-colors cursor-pointer ${tc.bgSecondary}`}>
-              {isUploading ? (
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-2"></div>
-                  <p className={tc.textMuted}>Processing EPUB...</p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <Upload className={`w-12 h-12 ${tc.accentText} mx-auto mb-2`} />
-                  <p className={`${tc.text} font-medium mb-1`}>
-                    Upload EPUB Book
-                  </p>
-                  <p className={`text-sm ${tc.textMuted}`}>
-                    Click to browse or drag and drop
-                  </p>
-                </div>
-              )}
-            </div>
-          </label>
-        </div>
+        <FileUploader
+          onUploadComplete={() => {
+            loadBooks()
+            setShowUploader(false)
+          }}
+          themeClasses={tc}
+          expanded={uploaderExpanded}
+          onToggle={() => setShowUploader(!showUploader)}
+        />
 
         {books.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className={`w-16 h-16 ${tc.textMuted} opacity-30 mx-auto mb-4`} />
-            <p className={`${tc.textMuted} text-lg`}>No books in your library</p>
-            <p className={`${tc.textMuted} text-sm opacity-70`}>Upload an EPUB to get started</p>
+            <p className={`${tc.textMuted} text-lg`}>No reading materials yet</p>
+            <p className={`${tc.textMuted} text-sm opacity-70`}>Upload an EPUB, PDF, or Markdown file to get started</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">

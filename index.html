@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="overscroll-behavior: none;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -73,9 +73,21 @@
       }
     }
     </script>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('spritz-theme') || 'base';
+        var colors = { base: '#0f172a', 'high-contrast': '#000000', oled: '#000000' };
+        var bg = colors[theme] || colors.base;
+        document.documentElement.style.backgroundColor = bg;
+        document.documentElement.setAttribute('data-theme', theme);
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.style.backgroundColor = bg;
+        });
+      })();
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="overscroll-behavior: none; margin: 0; background-color: inherit;">
+    <div id="root" style="min-height: 100vh;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

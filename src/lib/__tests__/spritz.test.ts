@@ -10,37 +10,32 @@ export function getORP(word: string): number {
   return 4
 }
 
-// Extract font size calculation for testing
 export function calculateFontSize(word: string, viewportWidth: number): number {
   if (!viewportWidth) return 96
 
   const wordLength = word.length
-  const availableWidth = viewportWidth * 0.8
+  const maxContainerWidth = 672 - 64
+  const availableWidth = Math.min(viewportWidth - 64, maxContainerWidth) * 0.95
   const charWidthRatio = 0.6
 
   let fontSize = availableWidth / (wordLength * charWidthRatio)
 
-  // Apply constraints based on screen size
   if (viewportWidth < 640) {
-    // Mobile: smaller range
     fontSize = Math.min(fontSize, 64)
-    fontSize = Math.max(fontSize, 32)
+    fontSize = Math.max(fontSize, 24)
   } else if (viewportWidth < 1024) {
-    // Tablet: medium range
     fontSize = Math.min(fontSize, 96)
-    fontSize = Math.max(fontSize, 48)
+    fontSize = Math.max(fontSize, 32)
   } else {
-    // Desktop: larger range
     fontSize = Math.min(fontSize, 128)
-    fontSize = Math.max(fontSize, 64)
+    fontSize = Math.max(fontSize, 48)
   }
 
-  // Additional scaling for very long words
   if (wordLength > 15) {
-    fontSize *= 0.9
+    fontSize *= 0.85
   }
   if (wordLength > 20) {
-    fontSize *= 0.85
+    fontSize *= 0.8
   }
 
   return Math.floor(fontSize)
@@ -93,25 +88,16 @@ describe('Spritz ORP (Optimal Recognition Point)', () => {
 describe('Dynamic Font Sizing', () => {
   describe('calculateFontSize', () => {
     describe('Mobile viewport (< 640px)', () => {
-      const mobileWidth = 390 // iPhone 12
+      const mobileWidth = 390
 
-      it('should constrain to 32-64px range for normal words', () => {
+      it('should constrain to 24-64px range for normal words', () => {
         const shortWord = calculateFontSize('I', mobileWidth)
         const mediumWord = calculateFontSize('hello', mobileWidth)
 
-        expect(shortWord).toBeGreaterThanOrEqual(32)
+        expect(shortWord).toBeGreaterThanOrEqual(24)
         expect(shortWord).toBeLessThanOrEqual(64)
-        expect(mediumWord).toBeGreaterThanOrEqual(32)
+        expect(mediumWord).toBeGreaterThanOrEqual(24)
         expect(mediumWord).toBeLessThanOrEqual(64)
-      })
-
-      it('should allow scaling below minimum for very long words', () => {
-        // Very long words (>15 chars) get additional scaling that can go below min
-        const longWord = calculateFontSize('internationalization', mobileWidth) // 20 chars
-
-        // Should be below 32 due to 0.9 scaling for >15 chars
-        expect(longWord).toBeLessThan(32)
-        expect(longWord).toBeGreaterThan(0) // Still reasonable
       })
 
       it('should scale down for very long words', () => {
@@ -128,28 +114,19 @@ describe('Dynamic Font Sizing', () => {
     })
 
     describe('Tablet viewport (640px - 1024px)', () => {
-      const tabletWidth = 768 // iPad
+      const tabletWidth = 768
 
-      it('should constrain to 48-96px range for normal words', () => {
+      it('should constrain to 32-96px range for normal words', () => {
         const shortWord = calculateFontSize('I', tabletWidth)
         const mediumWord = calculateFontSize('hello', tabletWidth)
 
-        expect(shortWord).toBeGreaterThanOrEqual(48)
+        expect(shortWord).toBeGreaterThanOrEqual(32)
         expect(shortWord).toBeLessThanOrEqual(96)
-        expect(mediumWord).toBeGreaterThanOrEqual(48)
+        expect(mediumWord).toBeGreaterThanOrEqual(32)
         expect(mediumWord).toBeLessThanOrEqual(96)
       })
 
-      it('should allow scaling below minimum for very long words', () => {
-        // Very long words (>15 chars) get additional scaling that can go below min
-        const longWord = calculateFontSize('internationalization', tabletWidth) // 20 chars
-
-        // Should be below 48 due to 0.9 scaling for >15 chars
-        expect(longWord).toBeLessThan(48)
-        expect(longWord).toBeGreaterThan(0) // Still reasonable
-      })
-
-      it('should be larger than mobile for same word', () => {
+      it('should be larger or equal to mobile for same word', () => {
         const word = 'hello'
         const mobileSize = calculateFontSize(word, 390)
         const tabletSize = calculateFontSize(word, 768)
@@ -161,47 +138,47 @@ describe('Dynamic Font Sizing', () => {
     describe('Desktop viewport (>= 1024px)', () => {
       const desktopWidth = 1920
 
-      it('should constrain to 64-128px range', () => {
+      it('should constrain to 48-128px range', () => {
         const shortWord = calculateFontSize('I', desktopWidth)
         const longWord = calculateFontSize('internationalization', desktopWidth)
 
-        expect(shortWord).toBeGreaterThanOrEqual(64)
+        expect(shortWord).toBeGreaterThanOrEqual(48)
         expect(shortWord).toBeLessThanOrEqual(128)
-        expect(longWord).toBeGreaterThanOrEqual(64)
+        expect(longWord).toBeGreaterThanOrEqual(20)
         expect(longWord).toBeLessThanOrEqual(128)
       })
 
-      it('should be larger than tablet for same word', () => {
+      it('should use container max width not viewport width', () => {
         const word = 'hello'
-        const tabletSize = calculateFontSize(word, 768)
-        const desktopSize = calculateFontSize(word, 1920)
+        const size1080 = calculateFontSize(word, 1080)
+        const size1920 = calculateFontSize(word, 1920)
+        const size3840 = calculateFontSize(word, 3840)
 
-        expect(desktopSize).toBeGreaterThanOrEqual(tabletSize)
+        expect(size1080).toBe(size1920)
+        expect(size1920).toBe(size3840)
       })
     })
 
     describe('Word length scaling', () => {
       const viewportWidth = 1920
 
-      it('should scale down 10% for words longer than 15 characters', () => {
-        const word15 = 'fifteencharword' // 15 chars
-        const word16 = 'sixteencharwordx' // 16 chars
+      it('should scale down for words longer than 15 characters', () => {
+        const word15 = 'fifteencharword'
+        const word16 = 'sixteencharwordx'
 
         const size15 = calculateFontSize(word15, viewportWidth)
         const size16 = calculateFontSize(word16, viewportWidth)
 
-        // Word 16 should be scaled down (before floor)
         expect(size16).toBeLessThanOrEqual(size15)
       })
 
-      it('should scale down additional 15% for words longer than 20 characters', () => {
-        const word20 = 'twentycharacterword1' // 20 chars
-        const word21 = 'twentyonecharacterwd1' // 21 chars
+      it('should scale down more for words longer than 20 characters', () => {
+        const word20 = 'twentycharacterword1'
+        const word21 = 'twentyonecharacterwd1'
 
         const size20 = calculateFontSize(word20, viewportWidth)
         const size21 = calculateFontSize(word21, viewportWidth)
 
-        // Word 21 should be further scaled down
         expect(size21).toBeLessThanOrEqual(size20)
       })
     })
@@ -212,21 +189,14 @@ describe('Dynamic Font Sizing', () => {
       })
 
       it('should handle empty string', () => {
-        // Empty string would cause division by zero, should still handle gracefully
         const result = calculateFontSize('', 1920)
-        expect(result).toBe(128) // Max desktop size for infinitely large calculated size
+        expect(result).toBe(128)
       })
 
       it('should return integer values', () => {
         const result = calculateFontSize('hello', 1920)
         expect(result).toBe(Math.floor(result))
         expect(Number.isInteger(result)).toBe(true)
-      })
-
-      it('should handle very wide viewports', () => {
-        const result = calculateFontSize('hello', 3840) // 4K monitor
-        expect(result).toBeGreaterThanOrEqual(64)
-        expect(result).toBeLessThanOrEqual(128)
       })
     })
 

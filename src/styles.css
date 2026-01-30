@@ -132,8 +132,15 @@ code {
   * {
     @apply border-border outline-ring/50;
   }
+  html,
   body {
-    @apply bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply text-foreground m-0;
+  }
+  #root {
+    @apply min-h-screen;
   }
 }
 
@@ -167,3 +174,4 @@ code {
   --accent-hover: #0891b2;
   --border: #1a1a1a;
 }
+
